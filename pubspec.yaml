@@ -1,0 +1,24 @@
+name: sumathisathkam
+description: A simple Flutter app that displays Sumathi Sathakam poems from a bundled text file.
+publish_to: 'none'
+version: 0.1.0
+environment:
+  sdk: '>=2.17.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.2
+  provider: ^6.0.5
+  shared_preferences: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/poems.txt
+    - assets/poems.json
