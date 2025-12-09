@@ -22,7 +22,7 @@ class PoemRepository {
       final poems = data.map((e) => Poem.fromJson(e as Map<String, dynamic>)).toList();
       _cache = poems;
       return poems;
-    } catch (e, st) {
+    } catch (e) {
       // Rethrow a descriptive exception so callers can show UI errors.
       throw Exception('Failed to load poems: $e');
     }
