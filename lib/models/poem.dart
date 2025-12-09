@@ -8,18 +8,30 @@ class Poem {
   final List<String> lines;
   final String? title;
 
-  Poem({required this.id, required this.raw, required this.lines, this.title});
+  final String? meaning;
+
+  Poem({
+    required this.id,
+    required this.raw,
+    required this.lines,
+    this.title,
+    this.meaning,
+  });
 
   // Create a Poem from a decoded JSON map
   factory Poem.fromJson(Map<String, dynamic> json) {
     final raw = json['raw'] as String? ?? '';
-    final lines = (json['lines'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-        (raw.isNotEmpty ? raw.split('\n') : <String>[]);
+    final lines =
+        (json['lines'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
+            (raw.isNotEmpty ? raw.split('\n') : <String>[]);
     return Poem(
-      id: (json['id'] is int) ? json['id'] as int : int.parse(json['id'].toString()),
+      id: (json['id'] is int)
+          ? json['id'] as int
+          : int.parse(json['id'].toString()),
       raw: raw,
       lines: lines,
       title: json['title'] as String?,
+      meaning: json['meaning'] as String?,
     );
   }
 
@@ -35,6 +47,7 @@ class Poem {
         'raw': raw,
         'lines': lines,
         'title': title,
+        'meaning': meaning,
       };
 
   @override

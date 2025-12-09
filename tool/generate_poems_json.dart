@@ -1,67 +1,83 @@
-// tool/generate_poems_json.dart
-
 import 'dart:convert';
 import 'dart:io';
 
-import '../lib/models/poem.dart';
+void main() async {
+  final file = File('assets/poems.txt');
+  if (!await file.exists()) {
+    print('assets/poems.txt not found');
+    return;
+  }
 
-final _delimiterReg = RegExp(r'॥\s*(\d+)\s*॥');
+  final content = await file.readAsString();
+  final lines = content.split('\n');
+  final poems = <Map<String, dynamic>>[];
 
-String _normalizeLineBreaks(String s) {
-  // Replace CRLF, CR, U+2028, U+2029 with \n and collapse multiple \n into single \n
-  return s.replaceAll(RegExp(r'[\r\u2028\u2029]+'), '\n');
-}
+  int? currentId;
+  List<String> currentPoemLines = [];
+  String? currentTitle;
+  String currentMeaning = '';
 
-List<Poem> parsePoems(String content) {
-  content = _normalizeLineBreaks(content).trim();
+  // Regex to match ID lines like "001", "110", etc.
+  final idRegex = RegExp(r'^\d+$');
 
-  final matches = _delimiterReg.allMatches(content).toList();
-  final poems = <Poem>[];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i].trim();
+    if (line.isEmpty) continue;
 
-  int prevEnd = 0;
-  for (final m in matches) {
-    final poemRaw = content.substring(prevEnd, m.start).trim();
-    final idStr = m.group(1);
-    if (poemRaw.isEmpty) {
-      prevEnd = m.end;
-      continue;
+    if (idRegex.hasMatch(line)) {
+      // Save previous poem if exists
+      if (currentId != null) {
+        poems.add({
+          'id': currentId,
+          'raw': currentPoemLines.join('\n'),
+          'lines': currentPoemLines,
+          'title': currentTitle,
+          'meaning': currentMeaning.trim(),
+        });
+      }
+
+      // Start new poem
+      currentId = int.parse(line);
+      currentPoemLines = [];
+      currentTitle = null;
+      currentMeaning = '';
+    } else if (line.startsWith('భావం:')) {
+      // It's a meaning line - strip prefix and add to meaning
+      // If meaning spans multiple lines, we might need to handle matching subsequent lines
+      // But based on input, it seems usually one block at the end.
+      // actually, let's just capture everything after "భావం:" as meaning until next ID
+      currentMeaning += line.substring('భావం:'.length).trim();
+      // Check if there are more lines before next ID?
+      // The loop continues. If next line is not ID, it's either more meaning or poem text?
+      // The format seems strictly: ID -> Poem Lines -> Meaning -> ID
+      // So after encountering meaning, subsequent lines before next ID *could* be meaning continuation.
+    } else {
+      // It's either poem text or meaning continuation
+      if (currentMeaning.isNotEmpty) {
+        currentMeaning += ' $line';
+      } else {
+        // It's a poem line
+        currentPoemLines.add(line);
+        if (currentTitle == null) {
+          currentTitle = line;
+        }
+      }
     }
-    final lines = poemRaw.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
-    final title = lines.isNotEmpty ? lines.first : null;
-    final id = idStr != null ? int.tryParse(idStr) ?? -1 : -1;
-    poems.add(Poem(id: id, raw: poemRaw, lines: lines, title: title));
-    prevEnd = m.end;
   }
 
-  // Handle trailing text after last delimiter (tolerate missing final delimiter)
-  if (prevEnd < content.length) {
-    final trailing = content.substring(prevEnd).trim();
-    if (trailing.isNotEmpty) {
-      final lines = trailing.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
-      final title = lines.isNotEmpty ? lines.first : null;
-      poems.add(Poem(id: -1, raw: trailing, lines: lines, title: title));
-    }
+  // Add last poem
+  if (currentId != null) {
+    poems.add({
+      'id': currentId,
+      'raw': currentPoemLines.join('\n'),
+      'lines': currentPoemLines,
+      'title': currentTitle,
+      'meaning': currentMeaning.trim(),
+    });
   }
 
-  return poems;
-}
-
-void main(List<String> args) async {
-  final inputPath = args.isNotEmpty ? args[0] : 'assets/poems.txt';
-  final outputPath = args.length > 1 ? args[1] : 'assets/poems.json';
-
-  final inputFile = File(inputPath);
-  if (!await inputFile.exists()) {
-    stderr.writeln('Input file not found: $inputPath');
-    exit(2);
-  }
-
-  final content = await inputFile.readAsString(encoding: utf8);
-  final poems = parsePoems(content);
-
-  final jsonList = poems.map((p) => p.toJson()).toList();
-  final encoder = JsonEncoder.withIndent('  ');
-  await File(outputPath).writeAsString(encoder.convert(jsonList), encoding: utf8);
-
-  stdout.writeln('Parsed ${poems.length} poems and wrote $outputPath');
+  final jsonFile = File('assets/poems.json');
+  await jsonFile
+      .writeAsString(const JsonEncoder.withIndent('  ').convert(poems));
+  print('Generated ${poems.length} poems to assets/poems.json');
 }

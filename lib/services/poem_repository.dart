@@ -17,9 +17,10 @@ class PoemRepository {
     if (!forceRefresh && _cache != null) return _cache!;
 
     try {
-      final jsonText = await rootBundle.loadString('poems.json');
+      final jsonText = await rootBundle.loadString('assets/poems.json');
       final data = jsonDecode(jsonText) as List<dynamic>;
-      final poems = data.map((e) => Poem.fromJson(e as Map<String, dynamic>)).toList();
+      final poems =
+          data.map((e) => Poem.fromJson(e as Map<String, dynamic>)).toList();
       _cache = poems;
       return poems;
     } catch (e) {
